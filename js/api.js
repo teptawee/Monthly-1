@@ -53,6 +53,6 @@ const API = (() => {
     generateForMonth: (year, month) => call('generateForMonth', { year, month })
 
     // เพิ่มใน return { ... } ของ API
-    getDashboard: (year, month) => call('getDashboard', { year, month })
+    getDashboard: (year, month) => call('getDashboard', { year, month }),
     };
 })();
