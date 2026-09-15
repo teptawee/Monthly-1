@@ -28,11 +28,15 @@ async function init() {
   try {
     const cats = await API.getCategories();
     const selF = document.getElementById('fCategory');
+    selF.innerHTML = '';
     cats.categories.forEach(c => selF.appendChild(new Option(c, c)));
     const selI = document.getElementById('incCategory');
+    selI.innerHTML = '';
     cats.incomeCategories.forEach(c => selI.appendChild(new Option(c, c)));
   } catch (err) {
-    alert('โหลดหมวดหมู่ไม่สำเร็จ: ' + err.message);
+    console.error('โหลด categories ไม่สำเร็จ:', err);
+    alert('❌ โหลดหมวดหมู่ไม่สำเร็จ:\n' + err.message +
+      '\n\nกรุณาตรวจสอบ:\n1. URL ลงท้ายด้วย /exec หรือไม่\n2. API_KEY ตรงกับ Code.gs\n3. Deploy ตั้ง Access = Anyone');
   }
 
   loadAll();
@@ -50,18 +54,21 @@ async function loadAll() {
       API.getIncomes(currentYear, currentMonth),
       API.getSummary(currentYear, currentMonth)
     ]);
-    allTransactions = trans;
-    allIncomes = incomes;
+    allTransactions = trans || [];
+    allIncomes = incomes || [];
     renderTables();
     renderIncomeTable();
     renderSummary(summary);
   } catch (err) {
-    alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+    console.error('loadAll error:', err);
+    alert('❌ โหลดข้อมูลไม่สำเร็จ: ' + err.message);
   }
 }
 
 // ====== Utils ======
-function fmt(n) { return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + ' ฿'; }
+function fmt(n) {
+  return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + ' ฿';
+}
 
 function statusBadge(status) {
   if (status === 'จ่ายแล้ว') return '<span class="status-badge status-paid">จ่ายแล้ว</span>';
@@ -69,8 +76,9 @@ function statusBadge(status) {
   return '<span class="status-badge status-unpaid">รอจ่าย</span>';
 }
 
-// ====== Render ======
+// ====== Render Summary ======
 function renderSummary(s) {
+  if (!s) return;
   document.getElementById('cardIncome').textContent = fmt(s.totalIncome);
   document.getElementById('cardTotal').textContent = fmt(s.totalAll);
   document.getElementById('cardPaid').textContent = fmt(s.totalPaid);
@@ -93,11 +101,13 @@ function renderSummary(s) {
 
   const container = document.getElementById('categoryBars');
   container.innerHTML = '';
-  const maxVal = Math.max(...Object.values(s.byCategory).map(c => c.total), 1);
+  const byCat = s.byCategory || {};
+  const maxVal = Math.max(...Object.values(byCat).map(c => c.total), 1);
   const labels = [], values = [];
-  for (const cat in s.byCategory) {
-    const c = s.byCategory[cat];
-    labels.push(cat); values.push(c.total);
+  for (const cat in byCat) {
+    const c = byCat[cat];
+    labels.push(cat);
+    values.push(c.total);
     const div = document.createElement('div');
     div.className = 'category-bar';
     div.innerHTML = `<div class="label-row"><span>${cat}</span><span>${c.total.toLocaleString()} ฿</span></div><div class="bar-bg"><div class="bar-fill" style="width:${(c.total/maxVal*100)}%"></div></div>`;
@@ -107,21 +117,34 @@ function renderSummary(s) {
   if (pieChartInstance) pieChartInstance.destroy();
   pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: ['#4285F4','#34A853','#FBBC04','#EA4335','#AB47BC','#26A69A','#FF7043','#8D6E63','#789262','#5C6BC0'] }] },
-    options: { maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } } }
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: ['#4285F4','#34A853','#FBBC04','#EA4335','#AB47BC','#26A69A','#FF7043','#8D6E63','#789262','#5C6BC0']
+      }]
+    },
+    options: {
+      maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } }
+    }
   });
 
   if (compareChartInstance) compareChartInstance.destroy();
   compareChartInstance = new Chart(document.getElementById('compareChart').getContext('2d'), {
     type: 'bar',
-    data: { labels: ['เดือนนี้'], datasets: [
-      { label: 'รายรับ', data: [s.totalIncome], backgroundColor: '#0F9D58' },
-      { label: 'รายจ่าย', data: [s.totalAll], backgroundColor: '#EA4335' }
-    ]},
+    data: {
+      labels: ['เดือนนี้'],
+      datasets: [
+        { label: 'รายรับ', data: [s.totalIncome], backgroundColor: '#0F9D58' },
+        { label: 'รายจ่าย', data: [s.totalAll], backgroundColor: '#EA4335' }
+      ]
+    },
     options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
   });
 }
 
+// ====== Render Tables ======
 function renderTables() {
   const tbAll = document.querySelector('#tableAll tbody');
   const tbUnpaid = document.querySelector('#tableUnpaid tbody');
@@ -163,7 +186,9 @@ function renderTables() {
     }
   });
 
-  if (allTransactions.length === 0) tbAll.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีรายการ กดปุ่ม "สร้างรายการเดือนนี้"</td></tr>';
+  if (allTransactions.length === 0) {
+    tbAll.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีรายการ กดปุ่ม "สร้างรายการเดือนนี้"</td></tr>';
+  }
   if (tbUnpaid.innerHTML === '') tbUnpaid.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอจ่าย 🎉</td></tr>';
   if (tbPaid.innerHTML === '') tbPaid.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีรายการที่จ่ายแล้ว</td></tr>';
   if (tbNone.innerHTML === '') tbNone.innerHTML = '<tr><td colspan="4" class="empty-state">ไม่มีรายการในหมวดนี้</td></tr>';
@@ -183,7 +208,9 @@ function renderIncomeTable() {
         <button class="btn btn-danger btn-sm" onclick="deleteIncomeRow(${inc.id})">ลบ</button>
       </td></tr>`;
   });
-  if (allIncomes.length === 0) tb.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีรายการรายรับในเดือนนี้ กดปุ่ม "เพิ่มรายรับ"</td></tr>';
+  if (allIncomes.length === 0) {
+    tb.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีรายการรายรับในเดือนนี้ กดปุ่ม "เพิ่มรายรับ"</td></tr>';
+  }
 }
 
 function actionButtons(t) {
@@ -202,11 +229,28 @@ function actionButtons(t) {
 }
 
 // ====== Actions ======
-async function markPaid(id) { try { await API.markAsPaid(id); loadAll(); } catch(e) { alert(e.message); } }
-async function markUnpaid(id) { try { await API.markAsUnpaid(id); loadAll(); } catch(e) { alert(e.message); } }
-async function markNoBalance(id) { try { await API.markAsNoBalance(id); loadAll(); } catch(e) { alert(e.message); } }
-async function deleteTransaction(id) { if (confirm('ยืนยันการลบ?')) { try { await API.deleteTransaction(id); loadAll(); } catch(e) { alert(e.message); } } }
-async function deleteIncomeRow(id) { if (confirm('ยืนยันการลบรายรับนี้?')) { try { await API.deleteIncome(id); loadAll(); } catch(e) { alert(e.message); } } }
+async function markPaid(id) {
+  try { await API.markAsPaid(id); loadAll(); }
+  catch(e) { alert('❌ ' + e.message); }
+}
+async function markUnpaid(id) {
+  try { await API.markAsUnpaid(id); loadAll(); }
+  catch(e) { alert('❌ ' + e.message); }
+}
+async function markNoBalance(id) {
+  try { await API.markAsNoBalance(id); loadAll(); }
+  catch(e) { alert('❌ ' + e.message); }
+}
+async function deleteTransaction(id) {
+  if (!confirm('ยืนยันการลบ?')) return;
+  try { await API.deleteTransaction(id); loadAll(); }
+  catch(e) { alert('❌ ' + e.message); }
+}
+async function deleteIncomeRow(id) {
+  if (!confirm('ยืนยันการลบรายรับนี้?')) return;
+  try { await API.deleteIncome(id); loadAll(); }
+  catch(e) { alert('❌ ' + e.message); }
+}
 
 // ====== Modal รายจ่าย ======
 function openAddModal() {
@@ -215,6 +259,7 @@ function openAddModal() {
   document.getElementById('fStatus').value = 'รอจ่าย';
   document.getElementById('modalForm').classList.add('active');
 }
+
 function editTransaction(t) {
   document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
   document.getElementById('editId').value = t.id;
@@ -226,7 +271,11 @@ function editTransaction(t) {
   document.getElementById('fNote').value = t.note;
   document.getElementById('modalForm').classList.add('active');
 }
-function closeModal() { document.getElementById('modalForm').classList.remove('active'); }
+
+function closeModal() {
+  document.getElementById('modalForm').classList.remove('active');
+}
+
 async function saveTransaction() {
   const id = document.getElementById('editId').value;
   const data = {
@@ -240,9 +289,10 @@ async function saveTransaction() {
   };
   if (!data.item || data.amount === '') { alert('กรุณากรอกรายการและจำนวนเงิน'); return; }
   try {
-    if (id) await API.updateTransaction(data); else await API.addTransaction(data);
+    if (id) await API.updateTransaction(data);
+    else await API.addTransaction(data);
     closeModal(); loadAll();
-  } catch (e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+  } catch(e) { alert('❌ บันทึกไม่สำเร็จ: ' + e.message); }
 }
 
 // ====== Modal รายรับ ======
@@ -252,6 +302,7 @@ function openIncomeModal() {
   document.getElementById('incDate').value = new Date().toISOString().slice(0, 10);
   document.getElementById('modalIncome').classList.add('active');
 }
+
 function editIncomeRow(inc) {
   document.getElementById('incomeModalTitle').textContent = 'แก้ไขรายรับ';
   document.getElementById('incomeEditId').value = inc.id;
@@ -262,7 +313,11 @@ function editIncomeRow(inc) {
   document.getElementById('incNote').value = inc.note;
   document.getElementById('modalIncome').classList.add('active');
 }
-function closeIncomeModal() { document.getElementById('modalIncome').classList.remove('active'); }
+
+function closeIncomeModal() {
+  document.getElementById('modalIncome').classList.remove('active');
+}
+
 async function saveIncome() {
   const id = document.getElementById('incomeEditId').value;
   const data = {
@@ -275,18 +330,19 @@ async function saveIncome() {
   };
   if (!data.item || data.amount === '') { alert('กรุณากรอกรายการและจำนวนเงิน'); return; }
   try {
-    if (id) await API.updateIncome(data); else await API.addIncome(data);
+    if (id) await API.updateIncome(data);
+    else await API.addIncome(data);
     closeIncomeModal(); loadAll();
-  } catch (e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+  } catch(e) { alert('❌ บันทึกไม่สำเร็จ: ' + e.message); }
 }
 
 // ====== Generate month ======
 async function generateMonth() {
   try {
     const res = await API.generateForMonth(currentYear, currentMonth);
-    alert(`สร้างรายการใหม่ ${res.generated} รายการ`);
+    alert(`✅ สร้างรายการใหม่ ${res.generated} รายการ`);
     loadAll();
-  } catch (e) { alert('สร้างรายการไม่สำเร็จ: ' + e.message); }
+  } catch(e) { alert('❌ สร้างรายการไม่สำเร็จ: ' + e.message); }
 }
 
 // ====== Yearly report ======
@@ -300,11 +356,17 @@ async function loadYearlyReport() {
     if (barChartInstance) barChartInstance.destroy();
     barChartInstance = new Chart(document.getElementById('barChart').getContext('2d'), {
       type: 'bar',
-      data: { labels: months, datasets: [
-        { label: 'รายรับ', data: incomeValues, backgroundColor: '#0F9D58' },
-        { label: 'รายจ่าย', data: expenseValues, backgroundColor: '#EA4335' }
-      ]},
-      options: { plugins: { legend: { position: 'bottom' } }, scales: { x: { ticks: { font: { size: 10 } } } } }
+      data: {
+        labels: months,
+        datasets: [
+          { label: 'รายรับ', data: incomeValues, backgroundColor: '#0F9D58' },
+          { label: 'รายจ่าย', data: expenseValues, backgroundColor: '#EA4335' }
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { ticks: { font: { size: 10 } } } }
+      }
     });
 
     document.getElementById('cardYearIncome').textContent = fmt(data.totalIncomeYear);
@@ -318,7 +380,7 @@ async function loadYearlyReport() {
     for (const cat in data.byCategory) {
       tb.innerHTML += `<tr><td data-label="หมวดหมู่">${cat}</td><td data-label="ยอดรวม">${data.byCategory[cat].toLocaleString()} ฿</td></tr>`;
     }
-  } catch (e) { alert('โหลดรายงานไม่สำเร็จ: ' + e.message); }
+  } catch(e) { alert('❌ โหลดรายงานไม่สำเร็จ: ' + e.message); }
 }
 
 // ====== Tabs ======
