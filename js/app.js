@@ -4,6 +4,17 @@ let currentMonth = new Date().getMonth() + 1;
 let allTransactions = [];
 let allIncomes = [];
 let pieChartInstance, barChartInstance, compareChartInstance;
+let categoriesLoaded = false;
+
+// ====== Loading ======
+function showLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) el.style.display = 'flex';
+}
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) el.style.display = 'none';
+}
 
 // ====== Init ======
 async function init() {
@@ -24,44 +35,74 @@ async function init() {
     selYear.appendChild(o);
   }
 
-  // โหลด categories
-  try {
-    const cats = await API.getCategories();
-    const selF = document.getElementById('fCategory');
-    selF.innerHTML = '';
-    cats.categories.forEach(c => selF.appendChild(new Option(c, c)));
-    const selI = document.getElementById('incCategory');
-    selI.innerHTML = '';
-    cats.incomeCategories.forEach(c => selI.appendChild(new Option(c, c)));
-  } catch (err) {
-    console.error('โหลด categories ไม่สำเร็จ:', err);
-    alert('❌ โหลดหมวดหมู่ไม่สำเร็จ:\n' + err.message +
-      '\n\nกรุณาตรวจสอบ:\n1. URL ลงท้ายด้วย /exec หรือไม่\n2. API_KEY ตรงกับ Code.gs\n3. Deploy ตั้ง Access = Anyone');
-  }
-
-  loadAll();
+  await loadAll();
 }
 
-// ====== Load all data ======
-async function loadAll() {
+// ====== Load all (1 API call) ======
+async function loadAll(forceRefresh = false) {
   currentMonth = parseInt(document.getElementById('selMonth').value);
   currentYear = parseInt(document.getElementById('selYear').value);
   document.getElementById('reportYearLabel').textContent = currentYear + 543;
 
+  showLoading();
+  const t0 = performance.now();
   try {
-    const [trans, incomes, summary] = await Promise.all([
-      API.getTransactions(currentYear, currentMonth),
-      API.getIncomes(currentYear, currentMonth),
-      API.getSummary(currentYear, currentMonth)
-    ]);
-    allTransactions = trans || [];
-    allIncomes = incomes || [];
+    const data = await API.getDashboard(currentYear, currentMonth);
+    const t1 = performance.now();
+    console.log(`⏱️ getDashboard loaded in ${Math.round(t1 - t0)} ms`);
+
+    // โหลด categories ครั้งเดียว
+    if (!categoriesLoaded && data.categories) {
+      const selF = document.getElementById('fCategory');
+      selF.innerHTML = '';
+      data.categories.categories.forEach(c => selF.appendChild(new Option(c, c)));
+      const selI = document.getElementById('incCategory');
+      selI.innerHTML = '';
+      data.categories.incomeCategories.forEach(c => selI.appendChild(new Option(c, c)));
+      categoriesLoaded = true;
+    }
+
+    allTransactions = data.transactions || [];
+    allIncomes = data.incomes || [];
+
+    // cache localStorage
+    try {
+      localStorage.setItem(`dash_${currentYear}_${currentMonth}`, JSON.stringify({
+        data,
+        ts: Date.now()
+      }));
+    } catch (e) {}
+
     renderTables();
     renderIncomeTable();
-    renderSummary(summary);
+    renderSummary(data.summary);
+
+    // ถ้าอยู่ tab report → refresh
+    if (document.getElementById('panel-report').classList.contains('active')) {
+      loadYearlyReport();
+    }
   } catch (err) {
     console.error('loadAll error:', err);
+
+    // fallback: localStorage cache
+    const cached = localStorage.getItem(`dash_${currentYear}_${currentMonth}`);
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached);
+        const ageMin = Math.round((Date.now() - ts) / 60000);
+        console.log(`⚠️ ใช้ cache อายุ ${ageMin} นาที`);
+        allTransactions = data.transactions || [];
+        allIncomes = data.incomes || [];
+        renderTables();
+        renderIncomeTable();
+        renderSummary(data.summary);
+        return;
+      } catch (e) {}
+    }
+
     alert('❌ โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -338,15 +379,21 @@ async function saveIncome() {
 
 // ====== Generate month ======
 async function generateMonth() {
+  if (!confirm(`สร้างรายการสำหรับเดือน ${currentMonth}/${currentYear}?`)) return;
+  showLoading();
   try {
     const res = await API.generateForMonth(currentYear, currentMonth);
     alert(`✅ สร้างรายการใหม่ ${res.generated} รายการ`);
     loadAll();
-  } catch(e) { alert('❌ สร้างรายการไม่สำเร็จ: ' + e.message); }
+  } catch(e) {
+    hideLoading();
+    alert('❌ สร้างรายการไม่สำเร็จ: ' + e.message);
+  }
 }
 
 // ====== Yearly report ======
 async function loadYearlyReport() {
+  showLoading();
   try {
     const data = await API.getYearlySummary(currentYear);
     const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -380,7 +427,11 @@ async function loadYearlyReport() {
     for (const cat in data.byCategory) {
       tb.innerHTML += `<tr><td data-label="หมวดหมู่">${cat}</td><td data-label="ยอดรวม">${data.byCategory[cat].toLocaleString()} ฿</td></tr>`;
     }
-  } catch(e) { alert('❌ โหลดรายงานไม่สำเร็จ: ' + e.message); }
+  } catch(e) {
+    alert('❌ โหลดรายงานไม่สำเร็จ: ' + e.message);
+  } finally {
+    hideLoading();
+  }
 }
 
 // ====== Tabs ======
