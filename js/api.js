@@ -1,23 +1,24 @@
-// ====== API Wrapper (แก้ CORS: ใช้ GET + query string) ======
+// ====== API Wrapper (ใช้ GET + query string เลี่ยง CORS) ======
 const API = (() => {
   const { GAS_API_URL, API_KEY } = window.APP_CONFIG;
 
-  // ✅ ใช้ GET + query string เท่านั้น → เป็น simple request → ไม่มี CORS preflight
   async function call(action, data = {}) {
     const params = new URLSearchParams();
     params.set('key', API_KEY);
     params.set('action', action);
-    
-    // แนบ data เป็น JSON string ใน query param
     if (Object.keys(data).length > 0) {
       params.set('data', JSON.stringify(data));
     }
 
     const url = `${GAS_API_URL}?${params.toString()}`;
-    console.log(`[API] ${action} →`, url); // debug
+    const t0 = performance.now();
+    console.log(`[API] ${action} →`, url);
 
     try {
       const res = await fetch(url, { method: 'GET' });
+      const t1 = performance.now();
+      console.log(`[API] ${action} ← ${res.status} (${Math.round(t1 - t0)} ms)`);
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'API error');
@@ -29,11 +30,14 @@ const API = (() => {
   }
 
   return {
-    // อ่านข้อมูล
+    // ⚡ MAIN — โหลดทุกอย่างใน 1 call
+    getDashboard: (year, month) => call('getDashboard', { year, month }),
+    getYearlySummary: (year) => call('getYearlySummary', { year }),
+
+    // แยก (backward compatible)
     getTransactions: (year, month) => call('getTransactions', { year, month }),
     getIncomes: (year, month) => call('getIncomes', { year, month }),
     getSummary: (year, month) => call('getSummary', { year, month }),
-    getYearlySummary: (year) => call('getYearlySummary', { year }),
     getCategories: () => call('getCategories'),
 
     // รายจ่าย
@@ -51,8 +55,5 @@ const API = (() => {
 
     // สร้างเดือน
     generateForMonth: (year, month) => call('generateForMonth', { year, month })
-   };
-  
-    // เพิ่มใน return { ... } ของ API
-    getDashboard: (year, month) => call('getDashboard', { year, month }),
- })();
+  };
+})();
