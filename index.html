@@ -8,13 +8,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+<div id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <div>กำลังโหลด...</div>
+</div>
+
 <div class="container">
   <header>
     <h1>💰 ระบบบันทึกรายรับ-รายจ่ายประจำเดือน</h1>
     <div class="month-selector">
       <select id="selMonth"></select>
       <select id="selYear"></select>
-      <button class="btn btn-primary" onclick="loadAll()">🔍 ดูข้อมูล</button>
+      <button class="btn btn-primary" onclick="loadAll(true)">🔍 ดูข้อมูล</button>
       <button class="btn btn-success" onclick="generateMonth()">➕ สร้างรายการเดือนนี้</button>
     </div>
   </header>
