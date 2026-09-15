@@ -29,7 +29,7 @@
     <div class="card count"><div class="label">📋 จำนวนรายการ</div><div class="value" id="cardCount">0</div></div>
   </div>
 
-  <div id="negativeBanner" style="display:none;">
+  <div id="negativeBanner">
     <span style="font-size:22px">⚠️</span>
     <span id="negativeBannerText"></span>
   </div>
@@ -58,13 +58,39 @@
       <h3>รายการรายรับ</h3>
       <button class="btn btn-income btn-sm" onclick="openIncomeModal()">➕ เพิ่มรายรับ</button>
     </div>
-    <table id="tableIncome"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่รับ</th><th>จัดการ</th></tr></thead><tbody></tbody></table>
+    <table id="tableIncome">
+      <thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่รับ</th><th>จัดการ</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <div class="panel" id="panel-all"><table id="tableAll"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
-  <div class="panel" id="panel-unpaid"><table id="tableUnpaid"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
-  <div class="panel" id="panel-paid"><table id="tablePaid"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่จ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
-  <div class="panel" id="panel-nobalance"><table id="tableNoBalance"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
+  <div class="panel" id="panel-all">
+    <table id="tableAll">
+      <thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-unpaid">
+    <table id="tableUnpaid">
+      <thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-paid">
+    <table id="tablePaid">
+      <thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่จ่าย</th><th>จัดการ</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-nobalance">
+    <table id="tableNoBalance">
+      <thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>จัดการ</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <div class="panel" id="panel-report">
     <h3>รายงานประจำปี <span id="reportYearLabel"></span></h3>
@@ -75,7 +101,10 @@
       <div class="card net"><div class="label">คงเหลือสุทธิทั้งปี</div><div class="value" id="cardYearNet">0</div></div>
     </div>
     <h3 style="margin-top:20px">สรุปตามหมวดหมู่ (ทั้งปี)</h3>
-    <table id="tableReport"><thead><tr><th>หมวดหมู่</th><th>ยอดรวม (บาท)</th></tr></thead><tbody></tbody></table>
+    <table id="tableReport">
+      <thead><tr><th>หมวดหมู่</th><th>ยอดรวม (บาท)</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
 </div>
 
@@ -85,41 +114,46 @@
 </div>
 
 <!-- Modal รายจ่าย -->
-<div class="modal-overlay" id="modalForm"><div class="modal">
-  <h3 id="modalTitle">เพิ่มรายการรายจ่าย</h3>
-  <input type="hidden" id="editId">
-  <div class="form-group"><label>หมวดหมู่</label><select id="fCategory"></select></div>
-  <div class="form-group"><label>รายการ</label><input type="text" id="fItem"></div>
-  <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="fAmount" step="0.01" inputmode="decimal"></div>
-  <div class="form-group"><label>สถานะ</label>
-    <select id="fStatus">
-      <option value="รอจ่าย">รอจ่าย</option>
-      <option value="จ่ายแล้ว">จ่ายแล้ว</option>
-      <option value="ไม่มียอดค้าง">ไม่มียอดค้าง</option>
-    </select>
+<div class="modal-overlay" id="modalForm">
+  <div class="modal">
+    <h3 id="modalTitle">เพิ่มรายการรายจ่าย</h3>
+    <input type="hidden" id="editId">
+    <div class="form-group"><label>หมวดหมู่</label><select id="fCategory"></select></div>
+    <div class="form-group"><label>รายการ</label><input type="text" id="fItem"></div>
+    <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="fAmount" step="0.01" inputmode="decimal"></div>
+    <div class="form-group">
+      <label>สถานะ</label>
+      <select id="fStatus">
+        <option value="รอจ่าย">รอจ่าย</option>
+        <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+        <option value="ไม่มียอดค้าง">ไม่มียอดค้าง</option>
+      </select>
+    </div>
+    <div class="form-group"><label>วันครบกำหนด</label><input type="date" id="fDueDate"></div>
+    <div class="form-group"><label>หมายเหตุ</label><textarea id="fNote" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-neutral" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveTransaction()">บันทึก</button>
+    </div>
   </div>
-  <div class="form-group"><label>วันครบกำหนด</label><input type="date" id="fDueDate"></div>
-  <div class="form-group"><label>หมายเหตุ</label><textarea id="fNote" rows="2"></textarea></div>
-  <div class="modal-actions">
-    <button class="btn btn-neutral" onclick="closeModal()">ยกเลิก</button>
-    <button class="btn btn-primary" onclick="saveTransaction()">บันทึก</button>
-  </div>
-</div></div>
+</div>
 
 <!-- Modal รายรับ -->
-<div class="modal-overlay" id="modalIncome"><div class="modal">
-  <h3 id="incomeModalTitle">เพิ่มรายรับใหม่</h3>
-  <input type="hidden" id="incomeEditId">
-  <div class="form-group"><label>หมวดหมู่</label><select id="incCategory"></select></div>
-  <div class="form-group"><label>รายการ</label><input type="text" id="incItem" placeholder="เช่น เงินเดือนเดือนนี้"></div>
-  <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="incAmount" step="0.01" inputmode="decimal"></div>
-  <div class="form-group"><label>วันที่รับ</label><input type="date" id="incDate"></div>
-  <div class="form-group"><label>หมายเหตุ</label><textarea id="incNote" rows="2"></textarea></div>
-  <div class="modal-actions">
-    <button class="btn btn-neutral" onclick="closeIncomeModal()">ยกเลิก</button>
-    <button class="btn btn-income" onclick="saveIncome()">บันทึก</button>
+<div class="modal-overlay" id="modalIncome">
+  <div class="modal">
+    <h3 id="incomeModalTitle">เพิ่มรายรับใหม่</h3>
+    <input type="hidden" id="incomeEditId">
+    <div class="form-group"><label>หมวดหมู่</label><select id="incCategory"></select></div>
+    <div class="form-group"><label>รายการ</label><input type="text" id="incItem" placeholder="เช่น เงินเดือนเดือนนี้"></div>
+    <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="incAmount" step="0.01" inputmode="decimal"></div>
+    <div class="form-group"><label>วันที่รับ</label><input type="date" id="incDate"></div>
+    <div class="form-group"><label>หมายเหตุ</label><textarea id="incNote" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-neutral" onclick="closeIncomeModal()">ยกเลิก</button>
+      <button class="btn btn-income" onclick="saveIncome()">บันทึก</button>
+    </div>
   </div>
-</div></div>
+</div>
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
