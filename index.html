@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>💰 ระบบบันทึกรายรับ-รายจ่าย</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💰 ระบบบันทึกรายรับ-รายจ่ายประจำเดือน</h1>
+    <div class="month-selector">
+      <select id="selMonth"></select>
+      <select id="selYear"></select>
+      <button class="btn btn-primary" onclick="loadAll()">🔍 ดูข้อมูล</button>
+      <button class="btn btn-success" onclick="generateMonth()">➕ สร้างรายการเดือนนี้</button>
+    </div>
+  </header>
+
+  <div class="cards">
+    <div class="card income"><div class="label">💵 รายรับรวม</div><div class="value" id="cardIncome">0</div></div>
+    <div class="card total"><div class="label">📤 รายจ่ายรวม</div><div class="value" id="cardTotal">0</div></div>
+    <div class="card net"><div class="label">⚖️ คงเหลือสุทธิ</div><div class="value" id="cardNet">0</div></div>
+    <div class="card paid"><div class="label">✅ จ่ายแล้ว</div><div class="value" id="cardPaid">0</div></div>
+    <div class="card unpaid"><div class="label">⏳ รอจ่าย</div><div class="value" id="cardUnpaid">0</div></div>
+    <div class="card nobalance"><div class="label">⚪ ไม่มียอดค้าง</div><div class="value" id="cardNoBalance">0</div></div>
+    <div class="card count"><div class="label">📋 จำนวนรายการ</div><div class="value" id="cardCount">0</div></div>
+  </div>
+
+  <div id="negativeBanner" style="display:none;">
+    <span style="font-size:22px">⚠️</span>
+    <span id="negativeBannerText"></span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</div>
+    <div class="tab" data-tab="income" onclick="switchTab('income')">💵 รายรับ</div>
+    <div class="tab" data-tab="all" onclick="switchTab('all')">📋 รายจ่ายทั้งหมด</div>
+    <div class="tab" data-tab="unpaid" onclick="switchTab('unpaid')">⏳ รอจ่าย</div>
+    <div class="tab" data-tab="paid" onclick="switchTab('paid')">✅ จ่ายแล้ว</div>
+    <div class="tab" data-tab="nobalance" onclick="switchTab('nobalance')">⚪ ไม่มียอดค้าง</div>
+    <div class="tab" data-tab="report" onclick="switchTab('report')">📈 รายงานสรุป</div>
+  </div>
+
+  <div class="panel active" id="panel-dashboard">
+    <div class="charts-row">
+      <div><h3>สรุปตามหมวดหมู่ (รายจ่าย)</h3><div id="categoryBars"></div></div>
+      <div><h3>สัดส่วนค่าใช้จ่าย</h3><canvas id="pieChart" height="250"></canvas></div>
+    </div>
+    <h3 style="margin-top:24px">เปรียบเทียบรายรับ-รายจ่าย</h3>
+    <div style="max-width:400px;margin:0 auto"><canvas id="compareChart" height="220"></canvas></div>
+  </div>
+
+  <div class="panel" id="panel-income">
+    <div class="panel-header">
+      <h3>รายการรายรับ</h3>
+      <button class="btn btn-income btn-sm" onclick="openIncomeModal()">➕ เพิ่มรายรับ</button>
+    </div>
+    <table id="tableIncome"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่รับ</th><th>จัดการ</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="panel" id="panel-all"><table id="tableAll"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>สถานะ</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
+  <div class="panel" id="panel-unpaid"><table id="tableUnpaid"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>กำหนดจ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
+  <div class="panel" id="panel-paid"><table id="tablePaid"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>วันที่จ่าย</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
+  <div class="panel" id="panel-nobalance"><table id="tableNoBalance"><thead><tr><th>หมวดหมู่</th><th>รายการ</th><th>จำนวนเงิน</th><th>จัดการ</th></tr></thead><tbody></tbody></table></div>
+
+  <div class="panel" id="panel-report">
+    <h3>รายงานประจำปี <span id="reportYearLabel"></span></h3>
+    <div style="overflow-x:auto"><canvas id="barChart" height="100"></canvas></div>
+    <div class="cards" style="margin-top:16px">
+      <div class="card income"><div class="label">รายรับรวมทั้งปี</div><div class="value" id="cardYearIncome">0</div></div>
+      <div class="card total"><div class="label">รายจ่ายรวมทั้งปี</div><div class="value" id="cardYearExpense">0</div></div>
+      <div class="card net"><div class="label">คงเหลือสุทธิทั้งปี</div><div class="value" id="cardYearNet">0</div></div>
+    </div>
+    <h3 style="margin-top:20px">สรุปตามหมวดหมู่ (ทั้งปี)</h3>
+    <table id="tableReport"><thead><tr><th>หมวดหมู่</th><th>ยอดรวม (บาท)</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<div class="fab-group">
+  <button class="fab fab-income" onclick="openIncomeModal()" title="เพิ่มรายรับ">💵</button>
+  <button class="fab fab-expense" onclick="openAddModal()" title="เพิ่มรายจ่าย">+</button>
+</div>
+
+<!-- Modal รายจ่าย -->
+<div class="modal-overlay" id="modalForm"><div class="modal">
+  <h3 id="modalTitle">เพิ่มรายการรายจ่าย</h3>
+  <input type="hidden" id="editId">
+  <div class="form-group"><label>หมวดหมู่</label><select id="fCategory"></select></div>
+  <div class="form-group"><label>รายการ</label><input type="text" id="fItem"></div>
+  <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="fAmount" step="0.01" inputmode="decimal"></div>
+  <div class="form-group"><label>สถานะ</label>
+    <select id="fStatus">
+      <option value="รอจ่าย">รอจ่าย</option>
+      <option value="จ่ายแล้ว">จ่ายแล้ว</option>
+      <option value="ไม่มียอดค้าง">ไม่มียอดค้าง</option>
+    </select>
+  </div>
+  <div class="form-group"><label>วันครบกำหนด</label><input type="date" id="fDueDate"></div>
+  <div class="form-group"><label>หมายเหตุ</label><textarea id="fNote" rows="2"></textarea></div>
+  <div class="modal-actions">
+    <button class="btn btn-neutral" onclick="closeModal()">ยกเลิก</button>
+    <button class="btn btn-primary" onclick="saveTransaction()">บันทึก</button>
+  </div>
+</div></div>
+
+<!-- Modal รายรับ -->
+<div class="modal-overlay" id="modalIncome"><div class="modal">
+  <h3 id="incomeModalTitle">เพิ่มรายรับใหม่</h3>
+  <input type="hidden" id="incomeEditId">
+  <div class="form-group"><label>หมวดหมู่</label><select id="incCategory"></select></div>
+  <div class="form-group"><label>รายการ</label><input type="text" id="incItem" placeholder="เช่น เงินเดือนเดือนนี้"></div>
+  <div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="incAmount" step="0.01" inputmode="decimal"></div>
+  <div class="form-group"><label>วันที่รับ</label><input type="date" id="incDate"></div>
+  <div class="form-group"><label>หมายเหตุ</label><textarea id="incNote" rows="2"></textarea></div>
+  <div class="modal-actions">
+    <button class="btn btn-neutral" onclick="closeIncomeModal()">ยกเลิก</button>
+    <button class="btn btn-income" onclick="saveIncome()">บันทึก</button>
+  </div>
+</div></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
