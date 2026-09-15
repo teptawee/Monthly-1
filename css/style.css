@@ -1,0 +1,19 @@
+/* เพิ่ม CSS สำหรับ banner แจ้งเตือนยอดติดลบ */
+#negativeBanner {
+  background: #fce8e6;
+  border: 2px solid #EA4335;
+  color: #c5221f;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  animation: pulseAlert 1.6s ease-in-out infinite;
+}
+@keyframes pulseAlert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .75; }
+}
